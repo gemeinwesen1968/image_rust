@@ -1,4 +1,4 @@
-use image::{DynamicImage, GenericImageView, ImageBuffer, Rgb, imageops};
+use image::{imageops, DynamicImage, Pixel, GenericImageView, GrayImage, ImageBuffer, Luma, Rgb, RgbImage };
 use std::f32;
 
 #[derive(Copy, Clone, Debug)]
@@ -25,16 +25,20 @@ fn color_distance(c1: Color, c2: Color) -> f32 {
     (r + g + b).sqrt()
 }
 
-fn get_nearest_color(pixel: Color) -> Color {
+fn get_nearest_color(color: Color) -> Color {
     GB_PALETTE.iter()
         .copied()
-        .min_by(|&a, &b| color_distance(pixel, a)
-            .partial_cmp(&color_distance(pixel, b))
+        .min_by(|&a, &b| color_distance(color, a)
+            .partial_cmp(&color_distance(color, b))
             .unwrap())
         .unwrap()
 }
 
-fn save(output_path: &str, img: ImageBuffer<Rgb<u8>, Vec<u8>>) -> () {
+fn save<P, Container>(output_path: &str, img: ImageBuffer<P, Container>) -> () 
+where 
+    P: Pixel<Subpixel = u8> + 'static + image::PixelWithColorType,
+    Container: std::ops::Deref<Target = [u8]>,
+{
     img.save(output_path).expect("Failed to save image!");
     println!("The image is saved: {}", output_path);
 }
@@ -49,6 +53,10 @@ fn apply_palette(input_path: &str) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
         let new_color: Color = get_nearest_color(input_color);
         Rgb([new_color.r, new_color.g, new_color.b])
     })
+}
+
+fn quantize(value: u8) -> u8 {
+    if value < 128 { 0 } else { 255 }
 }
 
 // fn apply_gameboy_palette(input_path: &str, output_path: &str) {
@@ -66,6 +74,59 @@ fn apply_palette(input_path: &str) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
 //     println!("Game Boy palette applied! Saved to {}", output_path);
 // }
 
+fn grayscale(image: &RgbImage) -> GrayImage {
+    let (width, height) = image.dimensions();
+    let mut gray_image = GrayImage::new(width, height);
+
+    for (x, y, pixel) in image.enumerate_pixels() {
+        let Rgb([r, g, b]) = *pixel;
+        let gray_value = (0.299 * r as f32 + 0.587 * g as f32 + 0.114 * b as f32) as u8;
+        gray_image.put_pixel(x, y, Luma([gray_value]));
+    }
+    gray_image
+}
+
+fn floyd_steinberg_dithering(image: &GrayImage) -> GrayImage {
+    let (width, height) = image.dimensions();
+    let mut img:ImageBuffer<Luma<u8>, Vec<u8>>  = image.clone();
+    for y in 0..height {
+        for x in 0..width {
+            let old_pixel:u8  = img.get_pixel(x, y)[0];
+            let new_pixel: u8 = quantize(old_pixel);
+            let error: i16 = old_pixel as i16 - new_pixel as i16;
+
+            img.put_pixel(x, y, Luma([new_pixel]));
+
+            if x + 1 < width {
+                let right_pixel: i16 = img.get_pixel(x + 1, y)[0] as i16;
+                img.put_pixel(x + 1, y, Luma([(right_pixel + (error * 7 / 16) as i16).clamp(0, 255) as u8]));
+            }
+
+            if y + 1 < height {
+                if x > 0 {
+                    let bottom_left_pixel: i16 = img.get_pixel(x - 1, y + 1)[0] as i16;
+                    img.put_pixel(x - 1, y + 1, Luma([(bottom_left_pixel + (error * 3 / 16) as i16).clamp(0, 255) as u8]));
+                }
+
+                let bottom_pixel: i16 = img.get_pixel(x, y + 1)[0] as i16;
+                img.put_pixel(x, y + 1, Luma([(bottom_pixel + (error * 5 / 16) as i16).clamp(0, 255) as u8]));
+
+                if x + 1 < width {
+                    let bottom_right_pixel = img.get_pixel(x + 1, y + 1)[0] as i16;
+                    img.put_pixel(x + 1, y + 1, Luma([(bottom_right_pixel + (error * 1 / 16) as i16).clamp(0, 255) as u8]));
+                }
+            }
+        }
+    }
+    img
+} 
+
+fn apply_floyd_steinberg_dithering(input_path: &str, output_path: &str) {
+    let img: RgbImage = image::open(input_path).expect("Failed to load image!").into_rgb8();
+    let grayscaled_img: GrayImage = grayscale(&img);
+    let dithered_img : GrayImage  = floyd_steinberg_dithering(&grayscaled_img);
+    save(output_path, dithered_img);
+}
 
 fn pixelate(input_path: &str, pixel_size: u32) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
     let img: ImageBuffer<Rgb<u8>, Vec<u8>> = image::open(input_path).expect("Failed to load image!").into_rgb8();
@@ -107,7 +168,12 @@ fn main() {
         let img: ImageBuffer<Rgb<u8>, Vec<u8>> = apply_palette(&args[2]);
         save(&args[3], img);
     } else if args[1] == "pixpal" {
-        pixelate_and_apply_palette(&args[2], &args[3], 4);
+        pixelate_and_apply_palette(&args[2], &args[3], 8);
+    } else if args[1] == "pix" {
+        let img: ImageBuffer<Rgb<u8>, Vec<u8>> = pixelate(&args[2], 8);
+        save(&args[3], img);
+    } else if args[1] == "floyd" {
+        apply_floyd_steinberg_dithering(&args[2], &args[3]);
     } else {
         println!("Palette {} not available!", args[1]);
     }
