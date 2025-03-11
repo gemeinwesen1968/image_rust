@@ -175,6 +175,6 @@ fn main() {
     } else if args[1] == "floyd" {
         apply_floyd_steinberg_dithering(&args[2], &args[3]);
     } else {
-        println!("Palette {} not available!", args[1]);
+        println!("Command is not valid!");
     }
 }
