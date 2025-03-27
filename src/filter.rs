@@ -158,8 +158,10 @@ pub fn apply() {
             operations.push(FilterOperation::FloydSteinberg);
         } else if arg.starts_with("-pix=") {
             if let Some(size_str) = arg.strip_prefix("-pix=") {
-                if let Ok(size) = size_str.parse::<u32>() {
-                    operations.push(FilterOperation::Pixelate(size));
+                if let Ok(size) = size_str.parse::<u32>(){
+                    if size != 0 {
+                        operations.push(FilterOperation::Pixelate(size));
+                    }
                 } else {
                     println!("Invalid pixel size: {}", size_str);
                     return;

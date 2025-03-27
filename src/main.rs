@@ -1,4 +1,4 @@
-pub mod filter;
+use filter::filter;
 
 fn main() {
      filter::apply();       
