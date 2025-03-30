@@ -2,25 +2,25 @@ use filter::filter::*;
 use image::{ DynamicImage, GrayImage, ImageBuffer, Luma, Rgb };
 
 fn apply() {
-     let args: Vec<String> = std::env::args().collect();
+    let args: Vec<String> = std::env::args().collect();
      
-     if args.len() < 3 {
-         println!("Usage: cargo r [filter operations] input_path output_path");
-         println!("Filter operations:");
-         println!("  -pal: Apply palette");
-         println!("  -pixpal: Apply pixelation (with optional size, default 8) and palette");
-         println!("  -pix=N: Apply pixelation with size N (default 8)");
-         println!("  -floyd: Apply Floyd-Steinberg dithering");
-         println!("  -rev: Reverse colors");
-         println!("Example: cargo r -pal -pix=4 -floyd input.png output.png");
-         return;
-     }
+    if args.len() < 3 {
+        println!("Usage: cargo r [filter operations] input_path output_path");
+        println!("Filter operations:");
+        println!("  -pal: Apply palette");
+        println!("  -pixpal: Apply pixelation and palette");
+        println!("  -pix=N: Apply pixelation with size N (default 8)");
+        println!("  -floyd: Apply Floyd-Steinberg dithering");
+        println!("  -rev: Reverse colors");
+        println!("Example: cargo r -pal -pix=4 -floyd input.png output.png");
+        return;
+    }
      
-     let input_path: &String = &args[args.len() - 2];
-     let output_path: &String = &args[args.len() - 1];
-     
-     let mut operations: Vec<FilterOperation> = Vec::new();
-     for i in 1..(args.len() - 2) {
+    let input_path: &String = &args[args.len() - 2];
+    let output_path: &String = &args[args.len() - 1];
+    
+    let mut operations: Vec<FilterOperation> = Vec::new();
+    for i in 1..(args.len() - 2) {
          let arg: &String = &args[i];
          
          if arg == "-pal" {
