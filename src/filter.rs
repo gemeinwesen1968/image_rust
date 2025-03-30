@@ -1,6 +1,14 @@
 use image::{imageops, DynamicImage, Pixel, GenericImageView, GrayImage, ImageBuffer, Luma, Rgb, RgbImage };
 use std::f32;
 
+#[derive(Debug, Clone, Copy)]
+pub enum FilterOperation {
+    Palette,
+    Pixelate(u32),
+    FloydSteinberg,
+    Reverse,
+}
+
 #[derive(Copy, Clone, Debug)]
 pub struct Color {
     r: u8,
@@ -70,6 +78,17 @@ pub fn grayscale(image: &RgbImage) -> GrayImage {
     gray_image
 }
 
+
+pub fn reverse(image: &DynamicImage) -> RgbImage {
+    let (width, height) = image.dimensions();
+
+    ImageBuffer::from_fn(width, height, |x, y| {
+        let pixel: image::Rgba<u8> = image.get_pixel(x, y);
+        let new_color: Color = Color { r: 255 - pixel[0], g: 255 - pixel[1], b: 255 - pixel[2]};
+        Rgb([new_color.r, new_color.g, new_color.b])
+    })
+}
+
 pub fn floyd_steinberg_dithering(image: &GrayImage) -> GrayImage {
     let (width, height) = image.dimensions();
     let mut img: ImageBuffer<Luma<u8>, Vec<u8>> = image.clone();
@@ -121,9 +140,4 @@ pub fn pixelate(image: &DynamicImage, pixel_size: u32) -> RgbImage {
     imageops::resize(&small_img, width, height, imageops::FilterType::Nearest)
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum FilterOperation {
-    Palette,
-    Pixelate(u32),
-    FloydSteinberg,
-}
+    
