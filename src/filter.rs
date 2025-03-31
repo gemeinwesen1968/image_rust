@@ -139,5 +139,3 @@ pub fn pixelate(image: &DynamicImage, pixel_size: u32) -> RgbImage {
     let small_img: ImageBuffer<Rgb<u8>, Vec<u8>> = imageops::resize(&rgb_img, small_width, small_height, imageops::FilterType::Nearest);
     imageops::resize(&small_img, width, height, imageops::FilterType::Nearest)
 }
-
-    
