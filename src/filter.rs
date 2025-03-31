@@ -1,5 +1,7 @@
 use image::{imageops, DynamicImage, Pixel, GenericImageView, GrayImage, ImageBuffer, Luma, Rgb, RgbImage };
 use std::f32;
+use crate::palette::*;
+
 
 #[derive(Debug, Clone, Copy)]
 pub enum FilterOperation {
@@ -11,36 +13,17 @@ pub enum FilterOperation {
 
 #[derive(Copy, Clone, Debug)]
 pub struct Color {
-    r: u8,
-    g: u8,
-    b: u8,
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
 }
 
-const GB_PALETTE: [Color; 7] = [
-    Color { r: 32, g: 32, b: 32 },
-    Color { r: 128, g: 255, b: 0 },
-    Color { r: 255, g: 255, b: 102 },
-    Color { r: 51, g: 255, b: 255 },
-    Color { r: 127, g: 0, b: 255},
-    Color { r: 255, g: 51, b: 153 },
-    Color { r: 255, g: 128, b: 0 },
-];
-
-fn color_distance(c1: Color, c2: Color) -> f32 {
-    let r: f32 = (c1.r as f32 - c2.r as f32).powi(2);
-    let g: f32 = (c1.g as f32 - c2.g as f32).powi(2);
-    let b: f32 = (c1.b as f32 - c2.b as f32).powi(2);
-    (r + g + b).sqrt()
-}
-
-fn get_nearest_color(color: Color) -> Color {
-    GB_PALETTE.iter()
-        .copied()
-        .min_by(|&a, &b| color_distance(color, a)
-            .partial_cmp(&color_distance(color, b))
-            .unwrap())
-        .unwrap()
-}
+// fn color_distance(c1: Color, c2: Color) -> f32 {
+//     let r: f32 = (c1.r as f32 - c2.r as f32).powi(2);
+//     let g: f32 = (c1.g as f32 - c2.g as f32).powi(2);
+//     let b: f32 = (c1.b as f32 - c2.b as f32).powi(2);
+//     (r + g + b).sqrt()
+// }
 
 pub fn save<P, Container>(output_path: &str, img: ImageBuffer<P, Container>) -> () 
 where 
@@ -51,8 +34,23 @@ where
     println!("The image is saved: {}", output_path);
 }
 
-pub fn apply_palette(input_image: &DynamicImage) -> RgbImage {
+pub fn apply_palette(input_image: &DynamicImage, palette_path: &str) -> RgbImage {
     let (width, height) = input_image.dimensions();
+
+    let palette = match Palette::from_file(palette_path) {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("Error loading palette from {}: {}", palette_path, e);
+            return fallback_palette(input_image);
+        }
+    };
+
+    let palette_colors = palette.get_colors();
+
+    if palette_colors.is_empty() {
+        eprintln!("Warning: Palette has no colors, using fallback");
+        return fallback_palette(input_image);
+    }
 
     ImageBuffer::from_fn(width, height, |x, y| {
         let pixel: image::Rgba<u8> = input_image.get_pixel(x, y);
@@ -61,6 +59,8 @@ pub fn apply_palette(input_image: &DynamicImage) -> RgbImage {
         Rgb([new_color.r, new_color.g, new_color.b])
     })
 }
+
+
 
 fn quantize(value: u8) -> u8 {
     if value < 128 { 0 } else { 255 }
