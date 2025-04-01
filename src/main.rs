@@ -8,7 +8,7 @@ fn apply() {
         println!("Usage: cargo r [filter operations] input_path output_path");
         println!("Filter operations:");
         println!("  -list: Lists palettes descriptions");
-        println!("  -pal=palname: Apply named palette");
+        println!("  -pal: Apply palette described in ./palette.json");
         println!("  -pixpal: Apply pixelation and palette");
         println!("  -pix=N: Apply pixelation with size N (default 8)");
         println!("  -floyd: Apply Floyd-Steinberg dithering");
@@ -76,7 +76,7 @@ fn apply() {
                    let gray: ImageBuffer<Luma<u8>, Vec<u8>> = gray_image_option.take().unwrap();
                    image = DynamicImage::ImageLuma8(gray).into();
                }
-               let rgb_image: ImageBuffer<Rgb<u8>, Vec<u8>> = apply_palette(&image);
+               let rgb_image: ImageBuffer<Rgb<u8>, Vec<u8>> = apply_palette(&image, "palette.json");
                image = DynamicImage::ImageRgb8(rgb_image);
                gray_image_option = None;
             },

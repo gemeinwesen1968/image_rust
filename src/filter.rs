@@ -18,6 +18,18 @@ pub struct Color {
     pub b: u8,
 }
 
+impl Color {
+    pub fn from_rgb_components(r: u8, g: u8, b: u8) -> Self {
+        Color { r, g, b }
+    }
+    
+    pub fn from_rgb(rgb: &Rgb<u8>) -> Self {
+        Self::from_rgb_components(rgb[0], rgb[1], rgb[2])
+    }
+
+}
+
+
 // fn color_distance(c1: Color, c2: Color) -> f32 {
 //     let r: f32 = (c1.r as f32 - c2.r as f32).powi(2);
 //     let g: f32 = (c1.g as f32 - c2.g as f32).powi(2);
@@ -34,6 +46,7 @@ where
     println!("The image is saved: {}", output_path);
 }
 
+
 pub fn apply_palette(input_image: &DynamicImage, palette_path: &str) -> RgbImage {
     let (width, height) = input_image.dimensions();
 
@@ -45,12 +58,20 @@ pub fn apply_palette(input_image: &DynamicImage, palette_path: &str) -> RgbImage
         }
     };
 
+    println!("Palette: {}\n{}\n{:?}", palette.name, palette.description, palette.colors);
+    
     let palette_colors: Vec<Rgb<u8>> = palette.get_colors();
 
     if palette_colors.is_empty() {
         eprintln!("Warning: Palette has no colors, using fallback");
         return fallback_palette(input_image);
     }
+
+    let colors: Vec<Color> = palette_colors.iter()
+        .map(|rgb| Color::from_rgb(rgb))
+        .collect();
+
+    set_active_palette(&colors);
 
     ImageBuffer::from_fn(width, height, |x, y| {
         let pixel: image::Rgba<u8> = input_image.get_pixel(x, y);
