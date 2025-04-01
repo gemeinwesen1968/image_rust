@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs::File;
-use std::io::{BufReader, Write};
+use std::io::BufReader;
 use std::path::Path;
 use image::{DynamicImage, GenericImageView, ImageBuffer, Rgb, RgbImage};
 use crate::filter::*;
@@ -75,12 +75,9 @@ pub fn get_nearest_color(color: Color) -> Color {
 pub fn fallback_palette(input_image: &DynamicImage) -> RgbImage {
     if let Ok(palette) = ACTIVE_PALETTE.read() {
         if palette.len() > 1 {
-            // Already has default colors, no need to set again
         } else {
-            drop(palette); // Release read lock before acquiring write lock
-            
-            // Set default palette colors
-            let default_colors = vec![
+            drop(palette);
+                let default_colors = vec![
                 Color { r: 0, g: 0, b: 0 },       // Black
                 Color { r: 255, g: 255, b: 255 }, // White
                 Color { r: 255, g: 0, b: 0 },     // Red
@@ -107,15 +104,14 @@ pub fn fallback_palette(input_image: &DynamicImage) -> RgbImage {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs::{create_dir_all, remove_file};
+    use std::{fs::{create_dir_all, remove_file}, io::Write};
     #[test]
-    fn test_1() {
-        let test_dir = "./test_files";
+    fn write_palette_and_read() {
+        let test_dir: &str = "./test_files";
         create_dir_all(test_dir).expect("Failed to create test directory");
-        let test_file_path = format!("{}/palette.json", test_dir);
+        let test_file_path: String = format!("{}/palette.json", test_dir);
 
-        // Mock JSON for the Palette struct
-        let mock_json = r#"
+        let mock_json: &str = r#"
         {
             "name": "Warm Colors",
             "description": "A palette of warm colors",
@@ -127,14 +123,11 @@ mod tests {
         }
         "#;
 
-        // Write the mock JSON to the file
-        let mut file = File::create(&test_file_path).expect("Failed to create test file");
+        let mut file: File = File::create(&test_file_path).expect("Failed to create test file");
         file.write_all(mock_json.as_bytes()).expect("Failed to write to test file");
 
-        // Now, call from_file to read the data, borrow `test_file_path` here
-        let result = Palette::from_file(&test_file_path); // Borrowed
+        let result = Palette::from_file(&test_file_path);
 
-        // Verify the result
         assert!(result.is_ok());
         let palette = result.unwrap();
         assert_eq!(
@@ -150,7 +143,6 @@ mod tests {
             }
         );
 
-        // Clean up the test file, borrow `test_file_path` here as well
         remove_file(&test_file_path).expect("Failed to delete test file");
     }
 }

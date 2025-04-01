@@ -45,7 +45,7 @@ pub fn apply_palette(input_image: &DynamicImage, palette_path: &str) -> RgbImage
         }
     };
 
-    let palette_colors = palette.get_colors();
+    let palette_colors: Vec<Rgb<u8>> = palette.get_colors();
 
     if palette_colors.is_empty() {
         eprintln!("Warning: Palette has no colors, using fallback");
@@ -59,8 +59,6 @@ pub fn apply_palette(input_image: &DynamicImage, palette_path: &str) -> RgbImage
         Rgb([new_color.r, new_color.g, new_color.b])
     })
 }
-
-
 
 fn quantize(value: u8) -> u8 {
     if value < 128 { 0 } else { 255 }
