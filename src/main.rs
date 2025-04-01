@@ -7,7 +7,6 @@ fn apply() {
     if args.len() < 3 {
         println!("Usage: cargo r [filter operations] input_path output_path");
         println!("Filter operations:");
-        println!("  -list: Lists palettes descriptions");
         println!("  -pal: Apply palette described in ./palette.json");
         println!("  -pixpal: Apply pixelation and palette");
         println!("  -pix=N: Apply pixelation with size N (default 8)");
